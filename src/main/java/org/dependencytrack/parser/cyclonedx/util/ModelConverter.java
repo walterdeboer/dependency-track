@@ -149,17 +149,22 @@ public class ModelConverter {
         }
 
         final LicenseChoice licenseChoice = cycloneDxComponent.getLicenseChoice();
-        if (licenseChoice != null && licenseChoice.getLicenses() != null && !licenseChoice.getLicenses().isEmpty()) {
-            for (final org.cyclonedx.model.License cycloneLicense : licenseChoice.getLicenses()) {
-                if (cycloneLicense != null) {
-                    if (StringUtils.isNotBlank(cycloneLicense.getId())) {
-                        final License license = qm.getLicense(StringUtils.trimToNull(cycloneLicense.getId()));
-                        if (license != null) {
-                            component.setResolvedLicense(license);
+        if (licenseChoice != null) {
+            if (licenseChoice.getExpression() != null) {
+                component.setLicense(licenseChoice.getExpression());
+                component.setResolvedLicense(null);
+            } else if (licenseChoice.getLicenses() != null && !licenseChoice.getLicenses().isEmpty()) {
+                for (final org.cyclonedx.model.License cycloneLicense : licenseChoice.getLicenses()) {
+                    if (cycloneLicense != null) {
+                        if (StringUtils.isNotBlank(cycloneLicense.getId())) {
+                            final License license = qm.getLicense(StringUtils.trimToNull(cycloneLicense.getId()));
+                            if (license != null) {
+                                component.setResolvedLicense(license);
+                            }
                         }
+                        component.setLicense(StringUtils.trimToNull(cycloneLicense.getName()));
+                        component.setLicenseUrl(StringUtils.trimToNull(cycloneLicense.getUrl()));
                     }
-                    component.setLicense(StringUtils.trimToNull(cycloneLicense.getName()));
-                    component.setLicenseUrl(StringUtils.trimToNull(cycloneLicense.getUrl()));
                 }
             }
         }
