@@ -24,8 +24,15 @@ import org.dependencytrack.model.License;
 import org.dependencytrack.model.LicenseGroup;
 import org.dependencytrack.model.Policy;
 import org.dependencytrack.model.PolicyCondition;
+import org.dependencytrack.model.Policy.Operator;
+import org.dependencytrack.parser.spdx.expression.SpdxExpressionParser;
+import org.dependencytrack.parser.spdx.expression.model.SpdxExpression;
+import org.dependencytrack.parser.spdx.expression.model.SpdxExpressionOperation;
+import org.dependencytrack.parser.spdx.expression.model.SpdxOperator;
+import org.dependencytrack.persistence.QueryManager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -35,6 +42,18 @@ import java.util.List;
  * @since 4.0.0
  */
 public class LicenseGroupPolicyEvaluator extends AbstractPolicyEvaluator {
+
+    /**
+     * A license group that does not exist in the database and is therefore verified based on its
+     * licenses list directly instad of a database check
+     */
+    private static class TemporaryLicenseGroup extends LicenseGroup {
+        private static final long serialVersionUID = -1268650463377651000L;
+    }
+
+    private static enum LicenseGroupType {
+        PositiveList, NegativeList;
+    }
 
     private static final Logger LOGGER = Logger.getLogger(LicenseGroupPolicyEvaluator.class);
 
@@ -52,29 +71,203 @@ public class LicenseGroupPolicyEvaluator extends AbstractPolicyEvaluator {
     @Override
     public List<PolicyConditionViolation> evaluate(final Policy policy, final Component component) {
         final List<PolicyConditionViolation> violations = new ArrayList<>();
-        final License license = component.getResolvedLicense();
+        SpdxExpression expression = getSpdxExpressionFromComponent(component);
 
+        boolean allPoliciesViolated = true;
         for (final PolicyCondition condition : super.extractSupportedConditions(policy)) {
-            LOGGER.debug("Evaluating component (" + component.getUuid() + ") against policy condition (" + condition.getUuid() + ")");
+            LOGGER.debug("Evaluating component (" + component.getUuid() + ") against policy condition ("
+                    + condition.getUuid() + ")");
             final LicenseGroup lg = qm.getObjectByUuid(LicenseGroup.class, condition.getValue());
-            if (license == null) {
-                if (PolicyCondition.Operator.IS_NOT == condition.getOperator()) {
-                    violations.add(new PolicyConditionViolation(condition, component));
-                }
-            } else {
-                final boolean containsLicense = qm.doesLicenseGroupContainLicense(lg, license);
-                if (PolicyCondition.Operator.IS == condition.getOperator()) {
-                    if (containsLicense) {
-                        violations.add(new PolicyConditionViolation(condition, component));
-                    }
-                } else if (PolicyCondition.Operator.IS_NOT == condition.getOperator()) {
-                    if (!containsLicense) {
-                        violations.add(new PolicyConditionViolation(condition, component));
-                    }
-                }
+            boolean hasViolations = evaluateCondition(qm, condition, expression, lg, component, violations);
+            if (hasViolations == false) {
+                allPoliciesViolated = false;
             }
         }
-        return violations;
+        if (policy.getOperator() == Operator.ALL) {
+            if (allPoliciesViolated) {
+                return violations;
+            } else {
+                // discard found violations, because not all conditions had violations
+                return List.of();
+            }
+        } else {
+            // Operator.ANY means just give all found violations
+            return violations;
+        }
+    }
+
+    /**
+     * Retrieves the appropriate spdx expression from a component. If the component has a single
+     * license, return spdx expression for that. If the component has an expression string as
+     * license, parse it and return that.
+     * 
+     * @param component
+     *            the component to retrieve the license expression for
+     * @return parsed license expression
+     */
+    static SpdxExpression getSpdxExpressionFromComponent(final Component component) {
+        SpdxExpression expression = null;
+
+        final License license = component.getResolvedLicense();
+        if (license != null) {
+            expression = new SpdxExpression(license.getLicenseId());
+        } else {
+            String licenseString = component.getLicense();
+            if (licenseString != null) {
+                expression = new SpdxExpressionParser().parse(licenseString);
+            } else {
+                expression = new SpdxExpression("unresolved");
+            }
+        }
+
+        return expression;
+    }
+
+    static LicenseGroup getTemporaryLicenseGroupForLicense(License license) {
+        LicenseGroup temporaryLicenseGroup = new TemporaryLicenseGroup();
+        temporaryLicenseGroup.setLicenses(Collections.singletonList(license));
+        return temporaryLicenseGroup;
+    }
+
+    /**
+     * Evaluate policy condition for spdx expression and license group, and add violations to the
+     * violations array.
+     * 
+     * @param qm
+     *            The query manager to use for database queries
+     * @param condition
+     *            The condition to evaluate
+     * @param expression
+     *            the spdx expression to be checked for incompatibility with the license group
+     * @param lg
+     *            the license group to check for incompatibility. If this is null, interpret as
+     *            "unresolved"
+     * @param component
+     *            the component for which policies are being checked
+     * @param violations
+     *            the list of violations, will be appended to in case of new violation
+     * @return true if violations have been added to the list
+     */
+    static boolean evaluateCondition(final QueryManager qm, final PolicyCondition condition,
+            final SpdxExpression expression, final LicenseGroup lg, final Component component,
+            final List<PolicyConditionViolation> violations) {
+
+        boolean hasViolations = false;
+        if (condition.getOperator() == PolicyCondition.Operator.IS) {
+            // call canLicenseBeUsed with inverted logic
+            if (!canLicenseBeUsed(qm, expression, LicenseGroupType.NegativeList, lg)) {
+                violations.add(new PolicyConditionViolation(condition, component));
+                hasViolations = true;
+            }
+        }
+        if (condition.getOperator() == PolicyCondition.Operator.IS_NOT) {
+            // call canLicenseBeUsed with inverted logic
+            if (!canLicenseBeUsed(qm, expression, LicenseGroupType.PositiveList, lg)) {
+                violations.add(new PolicyConditionViolation(condition, component));
+                hasViolations = true;
+            }
+        }
+
+        return hasViolations;
+    }
+
+    /**
+     * Check spdx expression for compatibility with license group under a policy condition
+     * 
+     * @param qm
+     *            The query manager to use for database queries
+     * @param expr
+     *            the spdx expression to be checked for compatibility with the license group
+     * @param groupType
+     *            the operator to use for recursive checking
+     * @param lg
+     *            the license group to check for compatibility. If this is null, interpret as
+     *            "unresolved".
+     * @return whether the license expression is compatible with the license group under the
+     *         condition
+     */
+    protected static boolean canLicenseBeUsed(final QueryManager qm, final SpdxExpression expr,
+            final LicenseGroupType groupType, final LicenseGroup lg) {
+        if (expr.getSpdxLicenseId() != null) {
+            License license = qm.getLicense(expr.getSpdxLicenseId());
+            if (groupType == LicenseGroupType.NegativeList) {
+                if (license == null && lg != null) {
+                    // unresolved license, and negative list given. This is ok
+                    return true;
+                }
+                if (license != null && lg == null) {
+                    // license resolved, but only unresolved forbidden. ok
+                    return true;
+                }
+                if (license == null && lg == null) {
+                    // license unresolved and unresolved is forbidden
+                    return false;
+                }
+                // license resolved and negative list given
+                return !doesLicenseGroupContainLicense(qm, lg, license);
+            } else if (groupType == LicenseGroupType.PositiveList) {
+                if (license == null && lg != null) {
+                    // unresolved license, but positive list given
+                    return false;
+                }
+                if (license != null && lg == null) {
+                    // license resolved, but only unresolved allowed
+                    return false;
+                }
+                if (license == null && lg == null) {
+                    // license unresolved and unresolved is allowed
+                    return true;
+                }
+                // license resolved and positive list given
+                return doesLicenseGroupContainLicense(qm, lg, license);
+            } else {
+                // should be unreachable
+                return true;
+            }
+        }
+        // check according to operation
+        SpdxExpressionOperation operation = expr.getOperation();
+        if (operation.getOperator() == SpdxOperator.OR) {
+            return operation.getArguments().stream().anyMatch(arg -> canLicenseBeUsed(qm, arg, groupType, lg));
+        }
+        if (operation.getOperator() == SpdxOperator.AND) {
+            return operation.getArguments().stream().allMatch(arg -> canLicenseBeUsed(qm, arg, groupType, lg));
+        }
+        if (operation.getOperator() == SpdxOperator.WITH) {
+            // Transform `GPL-2.0 WITH classpath-exception` to `GPL-2.0-with-classpath-exception`
+            String licenseName = operation.getArguments().get(0) + "-with-" + operation.getArguments().get(1);
+            SpdxExpression license = new SpdxExpression(licenseName);
+            return canLicenseBeUsed(qm, license, groupType, lg);
+        }
+        if (operation.getOperator() == SpdxOperator.PLUS) {
+            // Transform `GPL-2.0+` to `GPL-2.0 OR GPL-2.0-or-later`
+            SpdxExpression arg = operation.getArguments().get(0);
+            return canLicenseBeUsed(qm, arg, groupType, lg)
+                    || canLicenseBeUsed(qm, new SpdxExpression(expr.getSpdxLicenseId() + "-or-later"), groupType, lg);
+        }
+        // should be unreachable
+        return true;
+    }
+    
+    /**
+     * Check if the license is contained in the license group. If this is a temporary license group,
+     * don't ask the database but verify directly via the license's uuid
+     * 
+     * @param qm
+     *            The query manager to use for database queries
+     * @param lg
+     *            The license group to check
+     * @param license
+     *            The license to check
+     * @return Whether the license group contains the license
+     */
+    protected static boolean doesLicenseGroupContainLicense(final QueryManager qm, LicenseGroup lg, License license) {
+        if (lg instanceof TemporaryLicenseGroup) {
+            // this group was created just for this license check. Check its contents directly without the QueryManager.
+            return lg.getLicenses().stream().anyMatch(groupLicense -> groupLicense.getUuid().equals(license.getUuid()));
+        } else {
+            return qm.doesLicenseGroupContainLicense(lg, license);
+        }
     }
 
 }
