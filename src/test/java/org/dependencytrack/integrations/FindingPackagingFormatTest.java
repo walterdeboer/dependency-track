@@ -65,7 +65,7 @@ public class FindingPackagingFormatTest extends PersistenceCapableTest {
 
         final var fpf = new FindingPackagingFormat(project.getUuid(), qm.getFindings(project));
 
-        assertThatJson(fpf.getDocument().toString())
+        assertThatJson(fpf.getDocument())
                 .withMatcher("appVersion", equalTo(Config.getInstance().getApplicationVersion()))
                 .withMatcher("projectUuid", equalTo(project.getUuid().toString()))
                 .withMatcher("componentUuidA", equalTo(componentA.getUuid().toString()))
