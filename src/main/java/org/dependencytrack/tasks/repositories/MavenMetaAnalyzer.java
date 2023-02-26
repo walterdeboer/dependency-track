@@ -22,29 +22,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.dependencytrack.exception.MetaAnalyzerException;
 import org.dependencytrack.model.Component;
 import org.dependencytrack.model.RepositoryType;
+import org.dependencytrack.util.ComponentVersion;
 import org.dependencytrack.util.DateUtil;
 import org.dependencytrack.util.XmlUtil;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
 import com.github.packageurl.PackageURL;
-
 import alpine.common.logging.Logger;
 
 /**
@@ -138,7 +135,7 @@ public class MavenMetaAnalyzer extends AbstractMetaAnalyzer {
 
         // find highest stable or unstable version from list of versions
         List<String> versions = getVersions(versionsList);
-        String highestVersion = AbstractMetaAnalyzer.findHighestVersion(versions);
+        String highestVersion = ComponentVersion.findHighestVersion(versions);
         meta.setLatestVersion(highestVersion);
         if (lastUpdated != null && highestVersion != null && highestVersion.equals(latest)) {
             // lastUpdated reflects the timestamp when latest was updated, so it's only valid when highestVersion == latest

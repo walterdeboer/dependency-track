@@ -20,9 +20,9 @@ package org.dependencytrack.tasks.repositories;
 
 import org.dependencytrack.model.Component;
 import org.dependencytrack.model.RepositoryType;
+import org.dependencytrack.util.ComponentVersion;
 import org.junit.Assert;
 import org.junit.Test;
-
 import com.github.packageurl.PackageURL;
 
 public class MavenMetaAnalyzerTest {
@@ -36,8 +36,8 @@ public class MavenMetaAnalyzerTest {
         Assert.assertTrue(analyzer.isApplicable(component));
         Assert.assertEquals(RepositoryType.MAVEN, analyzer.supportedRepositoryType());
         MetaModel metaModel = analyzer.analyze(component);
-        Assert.assertEquals(-1, AbstractMetaAnalyzer.compareVersions("4.13.1", metaModel.getLatestVersion()));
-        Assert.assertTrue(AbstractMetaAnalyzer.isStableVersion(metaModel.getLatestVersion()));
+        Assert.assertTrue(ComponentVersion.compareVersions("4.13.1", metaModel.getLatestVersion()) < 0);
+        Assert.assertTrue(ComponentVersion.isStableVersion(metaModel.getLatestVersion()));
         // publishedTimestamp might be set or not
     }
 
@@ -50,8 +50,8 @@ public class MavenMetaAnalyzerTest {
         Assert.assertTrue(analyzer.isApplicable(component));
         Assert.assertEquals(RepositoryType.MAVEN, analyzer.supportedRepositoryType());
         MetaModel metaModel = analyzer.analyze(component);
-        Assert.assertEquals(-1, AbstractMetaAnalyzer.compareVersions("3.20.1", metaModel.getLatestVersion()));
-        Assert.assertTrue(AbstractMetaAnalyzer.isStableVersion(metaModel.getLatestVersion()));
+        Assert.assertTrue(ComponentVersion.compareVersions("3.20.1", metaModel.getLatestVersion()) < 0);
+        Assert.assertTrue(ComponentVersion.isStableVersion(metaModel.getLatestVersion()));
         // publishedTimestamp might be set or not
     }
 
@@ -67,8 +67,8 @@ public class MavenMetaAnalyzerTest {
         Assert.assertTrue(analyzer.isApplicable(component));
         Assert.assertEquals(RepositoryType.MAVEN, analyzer.supportedRepositoryType());
         MetaModel metaModel = analyzer.analyze(component);
-        Assert.assertEquals(-1, AbstractMetaAnalyzer.compareVersions("2.6.0", metaModel.getLatestVersion()));
-        Assert.assertTrue(AbstractMetaAnalyzer.isStableVersion(metaModel.getLatestVersion()));
+        Assert.assertTrue(ComponentVersion.compareVersions("2.6.0", metaModel.getLatestVersion()) < 0);
+        Assert.assertTrue(ComponentVersion.isStableVersion(metaModel.getLatestVersion()));
         // publishedTimestamp might be set or not
     }
 
