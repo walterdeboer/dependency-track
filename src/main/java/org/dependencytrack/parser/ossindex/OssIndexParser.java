@@ -21,12 +21,15 @@ package org.dependencytrack.parser.ossindex;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.dependencytrack.common.Jackson;
 import org.dependencytrack.parser.ossindex.model.ComponentReport;
 import org.dependencytrack.parser.ossindex.model.ComponentReportVulnerability;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import alpine.common.logging.Logger;
 
 /**
@@ -44,7 +47,7 @@ public class OssIndexParser {
      *
      * @param response the response to parse
      * @return an ComponentReport object
-     * @throws IOException
+     * @throws IOException when reading the response fails
      */
     public List<ComponentReport> parse(final CloseableHttpResponse response) throws IOException {
         LOGGER.debug("Parsing JSON response");
@@ -76,7 +79,7 @@ public class OssIndexParser {
             vulnerability.setCve(Jackson.optString(vulnObject, "cve"));
             vulnerability.setReference(Jackson.optString(vulnObject, "reference"));
             final ArrayNode externalRefsJSONArray = Jackson.optArray(vulnObject,"externalReferences");
-            final List<String> externalReferences = new ArrayList<String>();
+            final List<String> externalReferences = new ArrayList<>();
             for (int j = 0; j < externalRefsJSONArray.size(); j++) {
                 externalReferences.add(externalRefsJSONArray.get(j).asText());
             }

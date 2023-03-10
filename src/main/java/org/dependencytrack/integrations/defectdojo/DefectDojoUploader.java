@@ -18,9 +18,17 @@
  */
 package org.dependencytrack.integrations.defectdojo;
 
-import alpine.common.logging.Logger;
-import alpine.model.ConfigProperty;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import static org.dependencytrack.model.ConfigPropertyConstants.DEFECTDOJO_API_KEY;
+import static org.dependencytrack.model.ConfigPropertyConstants.DEFECTDOJO_ENABLED;
+import static org.dependencytrack.model.ConfigPropertyConstants.DEFECTDOJO_REIMPORT_ENABLED;
+import static org.dependencytrack.model.ConfigPropertyConstants.DEFECTDOJO_URL;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.List;
+
 import org.dependencytrack.integrations.AbstractIntegrationPoint;
 import org.dependencytrack.integrations.FindingPackagingFormat;
 import org.dependencytrack.integrations.ProjectFindingUploader;
@@ -28,15 +36,10 @@ import org.dependencytrack.model.Finding;
 import org.dependencytrack.model.Project;
 import org.dependencytrack.model.ProjectProperty;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.List;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import static org.dependencytrack.model.ConfigPropertyConstants.DEFECTDOJO_API_KEY;
-import static org.dependencytrack.model.ConfigPropertyConstants.DEFECTDOJO_ENABLED;
-import static org.dependencytrack.model.ConfigPropertyConstants.DEFECTDOJO_REIMPORT_ENABLED;
-import static org.dependencytrack.model.ConfigPropertyConstants.DEFECTDOJO_URL;
+import alpine.common.logging.Logger;
+import alpine.model.ConfigProperty;
 
 public class DefectDojoUploader extends AbstractIntegrationPoint implements ProjectFindingUploader {
 
@@ -89,7 +92,7 @@ public class DefectDojoUploader extends AbstractIntegrationPoint implements Proj
     @Override
     public InputStream process(final Project project, final List<Finding> findings) {
         final var fpf = new FindingPackagingFormat(project.getUuid(), findings);
-        return new ByteArrayInputStream(fpf.getDocument().getBytes());
+        return new ByteArrayInputStream(fpf.getDocument().getBytes(Charset.defaultCharset()));
     }
 
     @Override

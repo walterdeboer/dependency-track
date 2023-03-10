@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.dependencytrack.common.Jackson;
 import org.dependencytrack.parser.vulndb.model.ApiObject;
@@ -44,6 +45,7 @@ import org.dependencytrack.parser.vulndb.model.Version;
 import org.dependencytrack.parser.vulndb.model.Vulnerability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -59,7 +61,7 @@ public class VulnDbParser {
 
     public Status parseStatus(JsonNode root) {
         LOGGER.debug("Parsing JSON node");
-        Status status = new Status(Jackson.optString(root, "organization_name"), Jackson.optString(root, "user_name_requesting"),
+        return new Status(Jackson.optString(root, "organization_name"), Jackson.optString(root, "user_name_requesting"),
                 Jackson.optString(root, "user_email_address_requesting"),
                 Jackson.optString(root, "subscription_end_date"),
                 Jackson.optString(root, "number_of_api_calls_allowed_per_month"),
@@ -67,55 +69,44 @@ public class VulnDbParser {
                 Jackson.optString(root, "vulndb_statistics"),
                 root.toString()
         );
-        return status;
     }
 
-    public <T> Results<T> parse(Object jsonNode, Class<? extends ApiObject> apiObject) {
+    public <T> Results<T> parse(JsonNode root, Class<? extends ApiObject> apiObject) {
         LOGGER.debug("Parsing JSON node");
-
         final Results<T> results = new Results<>();
-        JsonNode root;
-        root = (JsonNode) jsonNode;
-        results.setPage(root.get("current_page").asInt());
-        results.setTotal(root.get("total_entries").asInt());
-        results.setRawResults(jsonNode.toString());
-        final ArrayNode rso = Jackson.asArray(root, "results");
-
-        if (Product.class == apiObject) {
-            results.setResults(parseProducts(rso));
-        } else if (Vendor.class == apiObject) {
-            results.setResults(parseVendors(rso));
-        } else if (Version.class == apiObject) {
-            results.setResults(parseVersions(rso));
-        } else if (Vulnerability.class == apiObject) {
-            results.setResults(parseVulnerabilities(rso));
+        if (root != null) {
+            results.setPage(root.get("current_page").asInt());
+            results.setTotal(root.get("total_entries").asInt());
+            results.setRawResults(root.toString());
+            final ArrayNode rso = Jackson.asArray(root, "results");
+    
+            if (Product.class == apiObject) {
+                results.setResults(parseProducts(rso));
+            } else if (Vendor.class == apiObject) {
+                results.setResults(parseVendors(rso));
+            } else if (Version.class == apiObject) {
+                results.setResults(parseVersions(rso));
+            } else if (Vulnerability.class == apiObject) {
+                results.setResults(parseVulnerabilities(rso));
+            }
         }
         return results;
     }
 
     public <T> Results<T> parse(final String jsonData, Class<? extends ApiObject> apiObject) {
         JsonNode result = Jackson.readString(jsonData);
-        if (result instanceof JsonNode) {
-            return this.parse((JsonNode) result, apiObject);
-        } else {
-            return this.parse((ArrayNode) result, apiObject);
-        }
+        return this.parse(result, apiObject);
     }
 
     public <T> Results<T> parse(File file, Class<? extends ApiObject> apiObject) throws IOException {
         String jsonData = Files.readString(Paths.get(file.toURI()), Charset.defaultCharset());
-        JsonNode result = Jackson.readString(jsonData);
-        if (result instanceof JsonNode) {
-            return this.parse((JsonNode) result, apiObject);
-        } else {
-            return this.parse((ArrayNode) result, apiObject);
-        }
+        return parse(jsonData, apiObject);
     }
 
     private List<Cpe> parseCpes(ArrayNode rso) {
         List<Cpe> cpes = null;
         if (rso != null) {
-            cpes = new ArrayList();
+            cpes = new ArrayList<>();
 
             for (int i = 0; i < rso.size(); ++i) {
                 JsonNode object = rso.get(i);
@@ -130,7 +121,7 @@ public class VulnDbParser {
     private List<Product> parseProducts(ArrayNode rso) {
         List<Product> products = null;
         if (rso != null) {
-            products = new ArrayList();
+            products = new ArrayList<>();
 
             for (int i = 0; i < rso.size(); ++i) {
                 JsonNode object = rso.get(i);
@@ -147,7 +138,7 @@ public class VulnDbParser {
     private List<Vendor> parseVendors(ArrayNode rso) {
         List<Vendor> vendors = null;
         if (rso != null) {
-            vendors = new ArrayList();
+            vendors = new ArrayList<>();
 
             for (int i = 0; i < rso.size(); ++i) {
                 JsonNode object = rso.get(i);
@@ -177,7 +168,7 @@ public class VulnDbParser {
     private List<Version> parseVersions(ArrayNode rso) {
         List<Version> versions = null;
         if (rso != null) {
-            versions = new ArrayList();
+            versions = new ArrayList<>();
 
             for (int i = 0; i < rso.size(); ++i) {
                 JsonNode object = rso.get(i);
@@ -195,7 +186,7 @@ public class VulnDbParser {
     private List<Vulnerability> parseVulnerabilities(ArrayNode rso) {
         List<Vulnerability> vulnerabilities = null;
         if (rso != null) {
-            vulnerabilities = new ArrayList();
+            vulnerabilities = new ArrayList<>();
 
             for (int i = 0; i < rso.size(); ++i) {
                 JsonNode object = rso.get(i);

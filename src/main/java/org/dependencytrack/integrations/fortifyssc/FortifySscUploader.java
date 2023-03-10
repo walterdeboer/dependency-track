@@ -18,9 +18,16 @@
  */
 package org.dependencytrack.integrations.fortifyssc;
 
-import alpine.common.logging.Logger;
-import alpine.model.ConfigProperty;
-import alpine.security.crypto.DataEncryption;
+import static org.dependencytrack.model.ConfigPropertyConstants.FORTIFY_SSC_ENABLED;
+import static org.dependencytrack.model.ConfigPropertyConstants.FORTIFY_SSC_TOKEN;
+import static org.dependencytrack.model.ConfigPropertyConstants.FORTIFY_SSC_URL;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.List;
+
 import org.dependencytrack.integrations.AbstractIntegrationPoint;
 import org.dependencytrack.integrations.FindingPackagingFormat;
 import org.dependencytrack.integrations.ProjectFindingUploader;
@@ -28,14 +35,9 @@ import org.dependencytrack.model.Finding;
 import org.dependencytrack.model.Project;
 import org.dependencytrack.model.ProjectProperty;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.List;
-
-import static org.dependencytrack.model.ConfigPropertyConstants.FORTIFY_SSC_ENABLED;
-import static org.dependencytrack.model.ConfigPropertyConstants.FORTIFY_SSC_TOKEN;
-import static org.dependencytrack.model.ConfigPropertyConstants.FORTIFY_SSC_URL;
+import alpine.common.logging.Logger;
+import alpine.model.ConfigProperty;
+import alpine.security.crypto.DataEncryption;
 
 public class FortifySscUploader extends AbstractIntegrationPoint implements ProjectFindingUploader {
 
@@ -67,7 +69,7 @@ public class FortifySscUploader extends AbstractIntegrationPoint implements Proj
     @Override
     public InputStream process(final Project project, final List<Finding> findings) {
         final var fpf = new FindingPackagingFormat(project.getUuid(), findings);
-        return new ByteArrayInputStream(fpf.getDocument().getBytes());
+        return new ByteArrayInputStream(fpf.getDocument().getBytes(Charset.defaultCharset()));
     }
 
     @Override

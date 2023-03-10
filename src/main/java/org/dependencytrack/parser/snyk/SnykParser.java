@@ -19,12 +19,14 @@
 package org.dependencytrack.parser.snyk;
 
 import static org.dependencytrack.util.JsonUtil.jsonStringToTimestamp;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.dependencytrack.common.Jackson;
 import org.dependencytrack.model.ConfigPropertyConstants;
@@ -37,10 +39,12 @@ import org.dependencytrack.model.VulnerableSoftware;
 import org.dependencytrack.parser.common.resolver.CweResolver;
 import org.dependencytrack.parser.snyk.model.SnykError;
 import org.dependencytrack.persistence.QueryManager;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.packageurl.MalformedPackageURLException;
 import com.github.packageurl.PackageURL;
+
 import alpine.common.logging.Logger;
 import alpine.model.ConfigProperty;
 
@@ -77,8 +81,8 @@ public class SnykParser {
 
                 for (int countCoordinates = 0; countCoordinates < coordinates.size(); countCoordinates++) {
                     ArrayNode representation = Jackson.optArray(coordinates.get(countCoordinates), "representation");
-                    if ((representation.size() == 1 && representation.get(0).equals("*"))) {
-                        LOGGER.debug("Range only contains *. Will not compute vulnerable software for this range. Purl is: "+purl);
+                    if ((representation.size() == 1 && "*".equals(representation.get(0).asText()))) {
+                        LOGGER.debug("Range only contains *. Will not compute vulnerable software for this range. Purl is: " + purl);
                     } else {
                         vsList = parseVersionRanges(qm, purl, representation);
                     }
