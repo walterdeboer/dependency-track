@@ -84,7 +84,8 @@ public class ComponentVersion implements Comparable<ComponentVersion> {
 
     // Semver version format:
     // https://semver.org/
-    protected static final Pattern SEMVER_PATTERN = Pattern.compile("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$");
+    // restricted label part an dbuild metadata part to max 8 times to preven ReDOS.
+    protected static final Pattern SEMVER_PATTERN = Pattern.compile("^(?<major>0|[1-9]\\d{0,9})\\.(?<minor>0|[1-9]\\d{0,9})\\.(?<patch>0|[1-9]\\d{0,9})(?:-(?<prerelease>(?:0|[1-9]\\d{0,9}|\\d{0,9}[a-zA-Z-][0-9a-zA-Z-]{0,127})(?:\\.(?:0|[1-9]\\d{0,9}|\\d{0,9}[a-zA-Z-][0-9a-zA-Z-]{0,127})){0,9}))?(?:\\+(?<buildmetadata>[0-9a-zA-Z-]{1,127}(?:\\.[0-9a-zA-Z-]{1,127}){0,9}))?$");
     protected static final Pattern SEMVER_PRE_RELEASE_PATTERN = Pattern.compile("(-[0-9a-z]).*", Pattern.CASE_INSENSITIVE);
 
     // Well-known labels denoting unstable versions
@@ -116,6 +117,17 @@ public class ComponentVersion implements Comparable<ComponentVersion> {
     }
 
     /**
+     * Determine wether a version string denotes a SemVer version
+     *
+     * @param version the version string
+     * @return true if the version string denotes a SemVer version
+     */
+    public static boolean isSemVerVersion(String version) {
+        final var semverMatcher = SEMVER_PATTERN.matcher(version);
+        return semverMatcher.matches();
+    }
+
+    /**
      * Determine wether a version string denotes a stable version
      *
      * @param version the version string
@@ -132,8 +144,7 @@ public class ComponentVersion implements Comparable<ComponentVersion> {
             return true; // could this be false? how?
         }
 
-        final var semverMatcher = SEMVER_PATTERN.matcher(version);
-        if (semverMatcher.matches()) {
+        if (isSemVerVersion(version)) {
             return new Semver(version).isStable();
         }
 
@@ -422,8 +433,8 @@ public class ComponentVersion implements Comparable<ComponentVersion> {
      * results (for example 1.0.10b-1 < 1.0.10-1). Only compare the version labels when
      * the version parts are equal.
      *
-     * @param label1 first label to compare
-     * @param label2 second label to compare
+     * @param version1 first version to compare
+     * @param version2 second version to compare
      * @return < 0 if version1 is the lowest, > 0 when version1 is the highest, 0 when equal.
      * @see ComparableVersion#compareTo
      */
