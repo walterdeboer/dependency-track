@@ -24,6 +24,7 @@ import org.dependencytrack.util.ComponentVersion;
 import org.junit.Assert;
 import org.junit.Test;
 import com.github.packageurl.PackageURL;
+
 public class PypiMetaAnalyzerTest {
 
     @Test

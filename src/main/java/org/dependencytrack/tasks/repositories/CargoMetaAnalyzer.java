@@ -18,21 +18,19 @@
  */
 package org.dependencytrack.tasks.repositories;
 
-import java.io.IOException;
-
+import alpine.common.logging.Logger;
+import com.github.packageurl.PackageURL;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
+import org.dependencytrack.exception.MetaAnalyzerException;
 import org.dependencytrack.model.Component;
 import org.dependencytrack.model.RepositoryType;
 import org.dependencytrack.util.DateUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import com.github.packageurl.PackageURL;
-
-import alpine.common.logging.Logger;
+import java.io.IOException;
 
 /**
  * An IMetaAnalyzer implementation that supports Cargo via crates.io compatible repos

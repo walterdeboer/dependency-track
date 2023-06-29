@@ -18,13 +18,13 @@
  */
 package org.dependencytrack.util;
 
-import java.util.Arrays;
-import java.util.List;
+import junitparams.JUnitParamsRunner;
+import junitparams.Parameters;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import junitparams.JUnitParamsRunner;
-import junitparams.Parameters;
+import java.util.Arrays;
+import java.util.List;
 
 @RunWith(JUnitParamsRunner.class)
 public class ComponentVersionTest {
@@ -42,6 +42,7 @@ public class ComponentVersionTest {
             new String[] { "1", "1-next.1" }, // one might think next comes later, but only when denoted with ^ sign
             new String[] { "1^next", "1-next.1" },
             new String[] { "1.next", "1" },
+            new String[] { "1f.2g.3h.4i.5j.Release", "1a.2b.3c.4d.5e.Final" },
             // new String[] { "1.0", "1" }, 1.0 and 1 are considered equal
             new String[] { "2.0.1.Final-next", "v2.0.1.Final-snapshot" },
             new String[] { "2.33-canary", "v2.33-snapshot" },
@@ -268,6 +269,43 @@ public class ComponentVersionTest {
             new String[] { "11.1.0-alpha+001" },
             new String[] { "1.0.0-beta+exp.sha.5114f85" },
             new String[] { "0.2.2-beta2+git20190406.ef77f01" },
+
+            new String[] { "2.5.1-develop-0017" },
+            new String[] { "1.0.0-1.develop09" },
+            new String[] { "1.0.0-feat-name09" },
+            new String[] { "2.5.1-develop-0017" },
+            new String[] { "0.0.4" },
+            new String[] { "1.2.3" },
+            new String[] { "10.20.30" },
+            new String[] { "1.1.2-prerelease+meta" },
+            new String[] { "1.1.2+meta" },
+            new String[] { "1.1.2+meta-valid" },
+            new String[] { "1.0.0-alpha" },
+            new String[] { "1.0.0-beta" },
+            new String[] { "1.0.0-alpha.beta" },
+            new String[] { "1.0.0-alpha.beta.1" },
+            new String[] { "1.0.0-alpha.1" },
+            new String[] { "1.0.0-alpha0.valid" },
+            new String[] { "1.0.0-alpha.0valid" },
+            new String[] { "1.0.0-alpha-a.b-c-somethinglong+build.1-aef.1-its-okay" },
+            new String[] { "1.0.0-rc.1+build.1" },
+            new String[] { "2.0.0-rc.1+build.123" },
+            new String[] { "1.2.3-beta" },
+            new String[] { "10.2.3-DEV-SNAPSHOT" },
+            new String[] { "1.2.3-SNAPSHOT-123" },
+            new String[] { "1.0.0" },
+            new String[] { "2.0.0" },
+            new String[] { "1.1.7" },
+            new String[] { "2.0.0+build.1848" },
+            new String[] { "2.0.1-alpha.1227" },
+            new String[] { "1.0.0-alpha+beta" },
+            new String[] { "1.2.3----RC-SNAPSHOT.12.9.1--.12+788" },
+            new String[] { "1.2.3----R-S.12.9.1--.12+meta" },
+            new String[] { "1.2.3----RC-SNAPSHOT.12.9.1--.12" },
+            new String[] { "1.0.0+0.build.1-rc.10000aaa-kk-0.1" },
+            new String[] { "99999999999999999999999.999999999999999999.99999999999999999" },
+            new String[] { "1.0.0-0A.is.legal" },
+
         };
     }
 
@@ -326,6 +364,11 @@ public class ComponentVersionTest {
             new String[] { "7.8-2+deb11u1" },
             new String[] { "1.4.0~dfsg+~1.4.5-2" },
             new String[] { "1.2.16+ds1-2+deb11u1" },
+            // Semver:
+            new String[] { "1.1.2+meta" },
+            new String[] { "1.1.2+meta-valid" },
+            new String[] { "2.0.0+build.1848" },
+            new String[] { "1.0.0+0.build.1-rc.10000aaa-kk-0.1" },
         };
     }
 
@@ -372,6 +415,14 @@ public class ComponentVersionTest {
             new String[] { "11.1.0-alpha+001" },
             new String[] { "1.0.0-beta+exp.sha.5114f85" },
             new String[] { "0.2.2-beta2+git20190406.ef77f01-3+b1" },
+            new String[] { "2.0.1-alpha.1227" },
+            new String[] { "1.0.0-alpha+beta" },
+            new String[] { "1.2.3----RC-SNAPSHOT.12.9.1--.12+788" },
+            new String[] { "1.2.3----R-S.12.9.1--.12+meta" },
+            new String[] { "1.2.3----RC-SNAPSHOT.12.9.1--.12" },
+            // non-semver
+            new String[] { "0.0.0-develop.09" },
+            new String[] { "0.0.0-feat-name.09" },
         };
     }
 

@@ -18,12 +18,12 @@
  */
 package org.dependencytrack.util;
 
+import com.vdurmont.semver4j.Semver;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.maven.artifact.versioning.ComparableVersion;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.maven.artifact.versioning.ComparableVersion;
-import com.vdurmont.semver4j.Semver;
 
 public class ComponentVersion implements Comparable<ComponentVersion> {
 
@@ -84,8 +84,9 @@ public class ComponentVersion implements Comparable<ComponentVersion> {
 
     // Semver version format:
     // https://semver.org/
-    // restricted label part an dbuild metadata part to max 8 times to preven ReDOS.
-    protected static final Pattern SEMVER_PATTERN = Pattern.compile("^(?<major>0|[1-9]\\d{0,9})\\.(?<minor>0|[1-9]\\d{0,9})\\.(?<patch>0|[1-9]\\d{0,9})(?:-(?<prerelease>(?:0|[1-9]\\d{0,9}|\\d{0,9}[a-zA-Z-][0-9a-zA-Z-]{0,127})(?:\\.(?:0|[1-9]\\d{0,9}|\\d{0,9}[a-zA-Z-][0-9a-zA-Z-]{0,127})){0,9}))?(?:\\+(?<buildmetadata>[0-9a-zA-Z-]{1,127}(?:\\.[0-9a-zA-Z-]{1,127}){0,9}))?$");
+    // restricted number, label and build metadata parts to preven ReDOS attacks.
+    protected static final Pattern SEMVER_PATTERN = Pattern.compile("^(?<major>0|[1-9]\\d{0,31})\\.(?<minor>0|[1-9]\\d{0,31})\\.(?<patch>0|[1-9]\\d{0,31})(?:-(?<prerelease>(?:0|[1-9]\\d{0,31}|\\d{0,31}[a-zA-Z-][0-9a-zA-Z-]{0,127})(?:\\.(?:0|[1-9]\\d{0,31}|\\d{0,31}[a-zA-Z-][0-9a-zA-Z-]{0,127})){0,9}))?(?:\\+(?<buildmetadata>[0-9a-zA-Z-]{1,127}(?:\\.[0-9a-zA-Z-]{1,127}){0,9}))?$");
+
     protected static final Pattern SEMVER_PRE_RELEASE_PATTERN = Pattern.compile("(-[0-9a-z]).*", Pattern.CASE_INSENSITIVE);
 
     // Well-known labels denoting unstable versions
@@ -303,9 +304,7 @@ public class ComponentVersion implements Comparable<ComponentVersion> {
             return compareDebianVersions(v1DebianMatcher, v2DebianMatcher);
         }
 
-        final var v1SemVerMatcher = SEMVER_PATTERN.matcher(v1string);
-        final var v2SemVerMatcher = SEMVER_PATTERN.matcher(v2string);
-        if (v1SemVerMatcher.matches() && v2SemVerMatcher.matches()) {
+        if (ComponentVersion.isSemVerVersion(v1string) && ComponentVersion.isSemVerVersion(v2string)) {
             return compareSemver(v1string, v2string);
         }
         return compareNonSemverVersions(stripLeadingV(v1string), stripLeadingV(v2string));
@@ -317,9 +316,7 @@ public class ComponentVersion implements Comparable<ComponentVersion> {
         if (v1DebianMatcher.matches() || v2DebianMatcher.matches()) {
             return compareDebianVersions(v1DebianMatcher, v2DebianMatcher);
         }
-        final var v1SemVerMatcher = SEMVER_PATTERN.matcher(v1string);
-        final var v2SemVerMatcher = SEMVER_PATTERN.matcher(v2string);
-        if (v1SemVerMatcher.matches() && v2SemVerMatcher.matches()) {
+        if (ComponentVersion.isSemVerVersion(v1string) && ComponentVersion.isSemVerVersion(v2string)) {
             return compareSemver(v1string, v2string);
         }
         return compareNonSemverVersions(v1string, v2string);
